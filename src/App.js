@@ -9,6 +9,11 @@ import {
     signInWithPopup,
 } from "firebase/auth";
 
+import { AnimatePresence } from 'framer-motion'
+import { validateUser } from "./api";
+import { useStateValue } from "./context/StateProvider";
+import { actionType } from "./context/reducer";
+
 const App = () => {
 
     const firebaseAuth = getAuth(app);
@@ -16,16 +21,28 @@ const App = () => {
     const [auth, setAuth] = useState(
         false || window.localStorage.getItem("auth") === "true"
     );
+    const [{ user }, dispatch] =
+        useStateValue();
 
     useEffect(() => {
         firebaseAuth.onAuthStateChanged((userCred) => {
             if (userCred) {
                 userCred.getIdToken().then((token) => {
-                    console.log(token);
+                    //console.log(token);
+                    validateUser(token).then((data) => {
+                        dispatch({
+                            type: actionType.SET_USER,
+                            user: data,
+                        });
+                    });
                 })
             } else {
                 setAuth(false)
                 window.localStorage.setItem("auth", false);
+                dispatch({
+                    type: actionType.SET_USER,
+                    user: null,
+                });
                 navigate('/login')
             }
         })
@@ -33,13 +50,15 @@ const App = () => {
 
 
     return (
-        <div className='w-screen h-screen bg-primary
+        <AnimatePresence mode="wait">
+            <div className='h-auto min-w-[680px] bg-primary
          flex justify-center items-center'>
-            <Routes>
-                <Route path="/login" element={<Login setAuth={setAuth} />} />
-                <Route path="/*" element={<Home />} />
-            </Routes>
-        </div>
+                <Routes>
+                    <Route path="/login" element={<Login setAuth={setAuth} />} />
+                    <Route path="/*" element={<Home />} />
+                </Routes>
+            </div>
+        </AnimatePresence>
     )
 }
 
